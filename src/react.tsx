@@ -47,10 +47,20 @@ export function useGlobalVolume(): [number, (volume: number) => void] {
   const manager = useAudio();
   const [volume, setVolumeState] = useState(() => manager.getGlobalVolume());
 
+  useEffect(() => {
+    // Keep local state in sync when manager's volume changes externally or via another hook
+    setVolumeState(manager.getGlobalVolume());
+    const subscription = manager.on('volume', (payload) => {
+      if (typeof payload.volume === 'number') {
+        setVolumeState(payload.volume);
+      }
+    });
+    return () => subscription.destroy();
+  }, [manager]);
+
   const setVolume = useCallback(
     (next: number) => {
       manager.setGlobalVolume(next);
-      setVolumeState(next);
     },
     [manager]
   );
