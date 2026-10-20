@@ -58,3 +58,41 @@ export function useGlobalVolume(): [number, (volume: number) => void] {
   return [volume, setVolume];
 }
 
+export interface PreloadState {
+  status: 'idle' | 'loading' | 'loaded' | 'error';
+  error: unknown;
+}
+
+export function usePreload(urls: string[]): PreloadState {
+  const manager = useAudio();
+  const urlsKey = JSON.stringify(urls);
+  const [state, setState] = useState<PreloadState>({ status: 'idle', error: null });
+
+  useEffect(() => {
+    const list: string[] = JSON.parse(urlsKey);
+    if (list.length === 0) {
+      setState({ status: 'idle', error: null });
+      return;
+    }
+
+    let cancelled = false;
+    setState({ status: 'loading', error: null });
+
+    manager.preloadUrls(list).then(
+      () => {
+        if (!cancelled) setState({ status: 'loaded', error: null });
+      },
+      (error) => {
+        if (!cancelled) setState({ status: 'error', error });
+      }
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [manager, urlsKey]);
+
+  return state;
+}
+
+

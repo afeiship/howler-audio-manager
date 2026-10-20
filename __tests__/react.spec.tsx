@@ -2,8 +2,8 @@ import type React from 'react';
 import { describe, test, expect, beforeEach, spyOn } from 'bun:test';
 import { renderHook, act } from '@testing-library/react';
 import { AudioManager } from '../src';
-import { AudioManagerProvider, useAudio, useAudioEvent, useGlobalVolume } from '../src/react';
-import { MockHowl, MockHowler } from './mock-howler';
+import { AudioManagerProvider, useAudio, useAudioEvent, useGlobalVolume, usePreload } from '../src/react';
+import { MockHowl, MockHowler, createdHowls } from './mock-howler';
 
 describe('React hooks - Provider / useAudio / useAudioEvent', () => {
   let manager: AudioManager<string>;
@@ -113,4 +113,52 @@ describe('React hooks - useGlobalVolume', () => {
     expect(result.current[0]).toBe(0.7);
   });
 });
+
+describe('React hooks - usePreload', () => {
+  let manager: AudioManager<string>;
+
+  beforeEach(() => {
+    MockHowler.reset();
+    manager = new AudioManager(
+      {},
+      { HowlClass: MockHowl as any, HowlerObj: MockHowler as any }
+    );
+  });
+
+  const wrapper = ({ children }: { children?: React.ReactNode }) => (
+    <AudioManagerProvider manager={manager}>{children}</AudioManagerProvider>
+  );
+
+  test('should go loading -> loaded when urls resolve', async () => {
+    const { result } = renderHook(
+      () => usePreload(['https://example.com/a.mp3']),
+      { wrapper }
+    );
+    expect(result.current.status).toBe('loading');
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 10));
+    });
+    expect(result.current.status).toBe('loaded');
+    expect(result.current.error).toBeNull();
+  });
+
+  test('should go to error when a url fails to load', async () => {
+    const { result } = renderHook(
+      () => usePreload(['https://example.com/bad.mp3']),
+      { wrapper }
+    );
+    await act(async () => {
+      createdHowls[createdHowls.length - 1].simulateLoadError(new Error('boom'));
+      await new Promise((r) => setTimeout(r, 10));
+    });
+    expect(result.current.status).toBe('error');
+    expect(result.current.error).not.toBeNull();
+  });
+
+  test('should stay idle for empty urls', () => {
+    const { result } = renderHook(() => usePreload([]), { wrapper });
+    expect(result.current.status).toBe('idle');
+  });
+});
+
 
