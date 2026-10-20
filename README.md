@@ -15,6 +15,7 @@
 - **Preload strategy**: effects preload eagerly (`preload: true`) for zero-latency feedback; URLs preload on demand or via `preloadUrl(s)`.
 - **Zero memory leak**: `destroy()` unloads every `Howl`, clears both caches and all event listeners — safe for SPA route unmounts.
 - **Dual-layer events**: per-call callbacks (`onStart`/`onEnd`/`onError`/`onStop`) plus a global event bus whose subscription returns `{ destroy }` — no `off()` needed.
+- **React ready**: optional Provider + hooks (`useAudio`, `useAudioEvent`, `useGlobalVolume`, `usePreload`) with auto cleanup — `react` is an optional peer dependency, non-React projects are unaffected.
 
 ## Installation
 
@@ -122,7 +123,7 @@ function PlayButton() {
 | `AudioManagerProvider` | `({ manager, children }) => JSX` | Context Provider，向下传递 `AudioManager` 实例；实例生命周期由调用方管理（不随 Provider 卸载销毁）。 |
 | `useAudio` | `<K>() => AudioManager<K>` | 取 Provider 传入的实例；不在 Provider 内调用会抛出明确异常。 |
 | `useAudioEvent` | `<K>(event: AudioEventType, handler: (payload) => void) => void` | 订阅全局事件；handler 永远是最新的（无 stale closure），卸载自动调用 `destroy()`。 |
-| `useGlobalVolume` | `() => [number, (v: number) => void]` | 读取/设置全局音量（初始值来自 manager 的 `defaultVolume`）。 |
+| `useGlobalVolume` | `() => [number, (v: number) => void]` | 读取/设置全局音量（初始值来自 manager 的 `defaultVolume`），并通过 `volume` 事件自动同步：其他 hook 或外部 `setGlobalVolume` 的改动都会更新当前值。 |
 | `usePreload` | `(urls: string[]) => { status: 'idle' \| 'loading' \| 'loaded' \| 'error'; error: unknown }` | 批量预加载 URL 音频，状态随加载结果更新；`urls` 内容变化会重新触发。 |
 
 > **非 React 项目注意**：hooks 从主入口导出，`react` 为 optional peerDependency。若你的打包器因找不到 `react` 报错，安装 `react`（任意 `>=16.8` 版本，仅作为打包占位）即可，不会影响现有 `AudioManager` 用法。
@@ -189,13 +190,14 @@ audioManager.playUrl(bgmUrl, { loop: true, singleton: false });
 ### Event System
 
 ```typescript
-type AudioEventType = 'play' | 'end' | 'stop' | 'pause' | 'error' | 'load';
+type AudioEventType = 'play' | 'end' | 'stop' | 'pause' | 'error' | 'load' | 'volume';
 
 interface AudioEventPayload<K = string> {
-  type: 'effect' | 'url';
+  type: 'effect' | 'url' | 'manager';
   key?: K;
   url?: string;
   soundId?: number;
+  volume?: number;
   error?: unknown;
 }
 ```
@@ -216,7 +218,8 @@ All global listeners are cleared automatically when `destroy()` is called. Liste
 
 | Method | Signature | Description |
 | --- | --- | --- |
-| `setGlobalVolume` | `(volume: number) => void` | Set global volume (0.0 – 1.0); applied to `Howler` and to future loads. |
+| `setGlobalVolume` | `(volume: number) => void` | Set global volume (0.0 – 1.0); applied to `Howler` and to future loads, and emits a `volume` event. |
+| `getGlobalVolume` | `() => number` | Read the current global volume. |
 | `mute` | `(muted: boolean) => void` | Globally mute / unmute. |
 | `stopAll` | `() => void` | Stop every playing sound and reset the active URL channel. |
 
