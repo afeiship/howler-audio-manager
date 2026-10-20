@@ -1,0 +1,31 @@
+# howler-audio-manager
+
+> H5/Web audio management library built on howler.js: enum-driven preset sound effects, dual caching (effect cache + URL audio cache), singleton dynamic URL playback, overlap prevention, preload/preheat support, and a dual-layer event system that leaves no memory leaks.
+
+This is a TypeScript library published as `@jswork/howler-audio-manager`. Business code supplies its own sound enum (generic `AudioManager<K>`); the library never hardcodes business keys or URLs. `howler` is a peer dependency. Tests run with `bun test` (Howler is mocked), and packages are built with tsup into ESM, CommonJS, and UMD formats.
+
+## Documentation
+
+- [README](README.md): Features, installation, quick start, and full API reference
+- [PRD](docs/01-prd.md): Product requirements — scenarios, architecture constraints, and planned API
+
+## Specifications
+
+- [Design Spec](docs/superpowers/specs/2026-10-20-audio-manager-design.md): Architecture, type contracts, core behaviors (caching, overlap prevention, singleton mutex), and testing strategy
+- [Implementation Plan](docs/superpowers/plans/2026-10-20-audio-manager-plan.md): Task-by-task TDD plan with full code
+
+## Source
+
+- [Entry](src/index.ts): Public exports (AudioManager class and all types)
+- [Core Implementation](src/manager.ts): AudioManager class — effects, URL audio, events, global controls, lifecycle
+- [Type Definitions](src/types.ts): Play options, event payloads, subscriptions, and resource map contracts
+
+## Tests
+
+- [Test Suite](__tests__/index.spec.ts): Preset effects, dynamic URL audio, events, and lifecycle tests
+- [Howler Mock](__tests__/mock-howler.ts): Deterministic Howl/Howler mock used by the test suite
+
+## Configuration
+
+- [Package Manifest](package.json): Dependencies (howler as peer dependency), scripts, and build entry points
+- [Tsup Config](tsup.config.ts): Build pipeline producing ESM, CJS, and UMD bundles with type declarations
