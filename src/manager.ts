@@ -112,6 +112,119 @@ export class AudioManager<K extends string | number = string> {
     }
   }
 
+  preloadUrl(url: string): Promise<void> {
+    const existing = this.urlAudioCache.get(url);
+    if (existing && existing.state() === 'loaded') {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      const howl =
+        existing ||
+        new this.HowlConstructor({
+          src: [url],
+          preload: true,
+          volume: this.globalVolume
+        });
+
+      if (!existing) {
+        this.urlAudioCache.set(url, howl);
+      }
+
+      howl.once('load', () => {
+        this.emit('load', { type: 'url', url });
+        resolve();
+      });
+
+      howl.once('loaderror', (_id: number, error: unknown) => {
+        this.emit('error', { type: 'url', url, error });
+        reject(error);
+      });
+    });
+  }
+
+  preloadUrls(urls: string[]): Promise<void[]> {
+    return Promise.all(urls.map((url) => this.preloadUrl(url)));
+  }
+
+  playUrl(url: string, options?: PlayUrlOptions): number {
+    let howl = this.urlAudioCache.get(url);
+    if (!howl) {
+      howl = new this.HowlConstructor({
+        src: [url],
+        preload: true,
+        volume: this.globalVolume
+      });
+      this.urlAudioCache.set(url, howl);
+    }
+
+    // Singleton mutex: stop currently active URL audio if singleton !== false
+    const isSingleton = options?.singleton !== false;
+    if (
+      isSingleton &&
+      this.activeUrlHowl &&
+      this.activeUrlHowl !== howl &&
+      this.activeUrlHowl.playing()
+    ) {
+      this.activeUrlHowl.stop();
+    }
+
+    // Overlap prevention on the same audio instance
+    if (howl.playing()) {
+      howl.stop();
+    }
+
+    if (options?.loop !== undefined) {
+      howl.loop(options.loop);
+    }
+
+    if (typeof options?.volume === 'number') {
+      howl.volume(options.volume);
+    }
+
+    if (isSingleton) {
+      this.activeUrlHowl = howl;
+    }
+
+    howl.once('play', (soundId: number) => {
+      options?.onStart?.(soundId);
+      this.emit('play', { type: 'url', url, soundId });
+    });
+
+    howl.once('end', (soundId: number) => {
+      options?.onEnd?.(soundId);
+      this.emit('end', { type: 'url', url, soundId });
+      if (this.activeUrlHowl === howl && !howl.loop()) {
+        this.activeUrlHowl = null;
+      }
+    });
+
+    howl.once('stop', (soundId: number) => {
+      options?.onStop?.(soundId);
+      this.emit('stop', { type: 'url', url, soundId });
+      if (this.activeUrlHowl === howl) {
+        this.activeUrlHowl = null;
+      }
+    });
+
+    howl.once('playerror', (soundId: number, error: unknown) => {
+      options?.onError?.(soundId, error);
+      this.emit('error', { type: 'url', url, soundId, error });
+      if (this.activeUrlHowl === howl) {
+        this.activeUrlHowl = null;
+      }
+    });
+
+    return howl.play();
+  }
+
+  stopUrl(url: string): void {
+    const howl = this.urlAudioCache.get(url);
+    if (howl) {
+      howl.stop();
+    }
+  }
+
   on(event: AudioEventType, handler: (payload: AudioEventPayload<K>) => void): EventSubscription {
     let set = this.listeners.get(event);
     if (!set) {

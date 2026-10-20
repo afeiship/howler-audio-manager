@@ -57,3 +57,75 @@ describe('AudioManager - Preset Effects', () => {
     expect(manager.hasEffect('click')).toBe(false);
   });
 });
+
+describe('AudioManager - Dynamic URL Audio', () => {
+  let manager: AudioManager<string>;
+
+  beforeEach(() => {
+    manager = new AudioManager({ defaultVolume: 1.0 }, { HowlClass: MockHowl as any, HowlerObj: MockHowler as any });
+  });
+
+  test('playUrl should create and cache Howl instance, and invoke callbacks', async () => {
+    let started = false;
+    const url = 'https://example.com/voice.mp3';
+    const soundId = manager.playUrl(url, {
+      onStart: () => {
+        started = true;
+      },
+    });
+    expect(soundId).toBeGreaterThan(0);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(started).toBe(true);
+  });
+
+  test('playUrl should stop previous URL audio by default (singleton mutex)', async () => {
+    const url1 = 'https://example.com/voice1.mp3';
+    const url2 = 'https://example.com/voice2.mp3';
+
+    let url1Stopped = false;
+    manager.playUrl(url1, {
+      onStop: () => {
+        url1Stopped = true;
+      },
+    });
+
+    manager.playUrl(url2);
+    expect(url1Stopped).toBe(true);
+  });
+
+  test('playUrl with singleton: false should not stop previous audio', async () => {
+    const url1 = 'https://example.com/voice1.mp3';
+    const url2 = 'https://example.com/voice2.mp3';
+
+    let url1Stopped = false;
+    manager.playUrl(url1, {
+      singleton: false,
+      onStop: () => {
+        url1Stopped = true;
+      },
+    });
+
+    manager.playUrl(url2, { singleton: false });
+    expect(url1Stopped).toBe(false);
+  });
+
+  test('preloadUrl and preloadUrls should resolve when audio loads', async () => {
+    const url = 'https://example.com/preload.mp3';
+    await expect(manager.preloadUrl(url)).resolves.toBeUndefined();
+
+    const urls = ['https://example.com/1.mp3', 'https://example.com/2.mp3'];
+    await expect(manager.preloadUrls(urls)).resolves.toHaveLength(2);
+  });
+
+  test('stopUrl should stop target url audio', () => {
+    const url = 'https://example.com/voice.mp3';
+    let stopped = false;
+    manager.playUrl(url, {
+      onStop: () => {
+        stopped = true;
+      },
+    });
+    manager.stopUrl(url);
+    expect(stopped).toBe(true);
+  });
+});
