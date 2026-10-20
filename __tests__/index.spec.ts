@@ -129,3 +129,49 @@ describe('AudioManager - Dynamic URL Audio', () => {
     expect(stopped).toBe(true);
   });
 });
+
+describe('AudioManager - Events & Lifecycle', () => {
+  let manager: AudioManager<string>;
+
+  beforeEach(() => {
+    manager = new AudioManager({ defaultVolume: 1.0 }, { HowlClass: MockHowl as any, HowlerObj: MockHowler as any });
+  });
+
+  test('on() should receive global events and destroy() should unsubscribe', async () => {
+    let playCount = 0;
+    const sub = manager.on('play', (payload) => {
+      if (payload.type === 'effect' && payload.key === 'beep') {
+        playCount++;
+      }
+    });
+
+    manager.loadEffect('beep', 'https://example.com/beep.mp3');
+    manager.playEffect('beep');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(playCount).toBe(1);
+
+    sub.destroy();
+    manager.playEffect('beep');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(playCount).toBe(1); // not incremented after unsubscribe
+  });
+
+  test('global control methods (setGlobalVolume, mute, stopAll)', () => {
+    manager.setGlobalVolume(0.5);
+    expect(MockHowler.volume()).toBe(0.5);
+
+    manager.mute(true);
+    expect(MockHowler.muted).toBe(true);
+
+    manager.stopAll();
+  });
+
+  test('destroy() should unload all howl instances and clear maps', () => {
+    manager.loadEffect('beep', 'https://example.com/beep.mp3');
+    manager.playUrl('https://example.com/voice.mp3');
+    manager.destroy();
+
+    expect(manager.hasEffect('beep')).toBe(false);
+  });
+});
+
