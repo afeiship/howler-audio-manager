@@ -287,6 +287,10 @@ export class AudioManager<K extends string | number = string> {
     }
   }
 
+  getGlobalVolume(): number {
+    return this.globalVolume;
+  }
+
   setGlobalVolume(volume: number): void {
     this.globalVolume = volume;
     this.HowlerInstance.volume(volume);

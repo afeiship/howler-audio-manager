@@ -421,3 +421,17 @@ describe('AudioManager - Bugfix Coverage', () => {
     expect(listenerFired).toBe(false);
   });
 });
+
+describe('AudioManager - Global Volume', () => {
+  test('getGlobalVolume should return current global volume', () => {
+    MockHowler.reset();
+    const manager = new AudioManager(
+      { defaultVolume: 0.5 },
+      { HowlClass: MockHowl as any, HowlerObj: MockHowler as any }
+    );
+    expect(manager.getGlobalVolume()).toBe(0.5);
+    manager.setGlobalVolume(0.9);
+    expect(manager.getGlobalVolume()).toBe(0.9);
+  });
+});
+
