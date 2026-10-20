@@ -1,6 +1,6 @@
 {
   "name": "@jswork/howler-audio-manager",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Howler.js audio manager, enum-driven sounds for H5.",
   "npmClient": "pnpm",
   "main": "dist/index.cjs.js",
