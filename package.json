@@ -8,8 +8,7 @@
   "types": "dist/index.d.ts",
   "files": [
     "src",
-    "dist",
-    "global.d.ts"
+    "dist"
   ],
   "prettier": "@jswork/style-guide/prettier",
   "scripts": {
