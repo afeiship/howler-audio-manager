@@ -17,14 +17,24 @@
     "release": "release-it"
   },
   "license": "MIT",
+  "peerDependencies": {
+    "howler": "^2.2.4"
+  },
+  "peerDependenciesMeta": {
+    "howler": {
+      "optional": false
+    }
+  },
   "devDependencies": {
     "@jswork/style-guide": "^1.0.3",
     "@jswork/tsup-banner": "^1.0.4",
     "@swc/core": "^1.5.5",
+    "@types/howler": "^2.2.12",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.12.11",
     "esbuild-plugin-replace": "^1.4.0",
     "esbuild-plugin-umd-wrapper": "^3.0.0",
+    "howler": "^2.2.4",
     "prettier": "^3.3.3",
     "tsup": "^8.2.4",
     "typescript": "^4.9.5"
@@ -35,8 +45,9 @@
   },
   "homepage": "https://js.work",
   "keywords": [
-    "howler-audio-manager",
-    "number",
-    "num"
+    "howler",
+    "audio-manager",
+    "h5-audio",
+    "sound-effects"
   ]
 }
