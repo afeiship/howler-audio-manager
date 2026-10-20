@@ -23,13 +23,14 @@ export interface PlayUrlOptions extends PlayOptions {
   singleton?: boolean;
 }
 
-export type AudioEventType = 'play' | 'end' | 'stop' | 'pause' | 'error' | 'load';
+export type AudioEventType = 'play' | 'end' | 'stop' | 'pause' | 'error' | 'load' | 'volume';
 
 export interface AudioEventPayload<K = string> {
-  type: 'effect' | 'url';
+  type: 'effect' | 'url' | 'manager';
   key?: K;
   url?: string;
   soundId?: number;
+  volume?: number;
   error?: unknown;
 }
 

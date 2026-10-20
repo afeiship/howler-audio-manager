@@ -294,6 +294,7 @@ export class AudioManager<K extends string | number = string> {
   setGlobalVolume(volume: number): void {
     this.globalVolume = volume;
     this.HowlerInstance.volume(volume);
+    this.emit('volume', { type: 'manager', volume });
   }
 
   mute(muted: boolean): void {

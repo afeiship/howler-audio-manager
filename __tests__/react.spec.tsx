@@ -112,6 +112,28 @@ describe('React hooks - useGlobalVolume', () => {
     const { result } = renderHook(() => useGlobalVolume(), { wrapper: w });
     expect(result.current[0]).toBe(0.7);
   });
+
+  test('should sync volume across multiple hooks and external calls', () => {
+    const { result: hookA } = renderHook(() => useGlobalVolume(), { wrapper });
+    const { result: hookB } = renderHook(() => useGlobalVolume(), { wrapper });
+
+    expect(hookA.current[0]).toBe(1);
+    expect(hookB.current[0]).toBe(1);
+
+    act(() => {
+      hookA.current[1](0.3);
+    });
+
+    expect(hookA.current[0]).toBe(0.3);
+    expect(hookB.current[0]).toBe(0.3);
+
+    act(() => {
+      manager.setGlobalVolume(0.8);
+    });
+
+    expect(hookA.current[0]).toBe(0.8);
+    expect(hookB.current[0]).toBe(0.8);
+  });
 });
 
 describe('React hooks - usePreload', () => {
