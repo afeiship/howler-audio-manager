@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { AudioManager } from './manager';
 import type { AudioEventType, AudioEventPayload } from './types';
@@ -42,3 +42,19 @@ export function useAudioEvent<K extends string | number = string>(
     return () => subscription.destroy();
   }, [manager, event]);
 }
+
+export function useGlobalVolume(): [number, (volume: number) => void] {
+  const manager = useAudio();
+  const [volume, setVolumeState] = useState(() => manager.getGlobalVolume());
+
+  const setVolume = useCallback(
+    (next: number) => {
+      manager.setGlobalVolume(next);
+      setVolumeState(next);
+    },
+    [manager]
+  );
+
+  return [volume, setVolume];
+}
+

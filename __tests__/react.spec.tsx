@@ -1,8 +1,8 @@
 import type React from 'react';
 import { describe, test, expect, beforeEach, spyOn } from 'bun:test';
-import { renderHook } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { AudioManager } from '../src';
-import { AudioManagerProvider, useAudio, useAudioEvent } from '../src/react';
+import { AudioManagerProvider, useAudio, useAudioEvent, useGlobalVolume } from '../src/react';
 import { MockHowl, MockHowler } from './mock-howler';
 
 describe('React hooks - Provider / useAudio / useAudioEvent', () => {
@@ -71,3 +71,46 @@ describe('React hooks - Provider / useAudio / useAudioEvent', () => {
     expect(count).toBe(2);
   });
 });
+
+describe('React hooks - useGlobalVolume', () => {
+  let manager: AudioManager<string>;
+
+  beforeEach(() => {
+    MockHowler.reset();
+    manager = new AudioManager(
+      {},
+      { HowlClass: MockHowl as any, HowlerObj: MockHowler as any }
+    );
+  });
+
+  const wrapper = ({ children }: { children?: React.ReactNode }) => (
+    <AudioManagerProvider manager={manager}>{children}</AudioManagerProvider>
+  );
+
+  test('should initialize from manager and update on set', () => {
+    const { result } = renderHook(() => useGlobalVolume(), { wrapper });
+    expect(result.current[0]).toBe(1);
+
+    act(() => {
+      result.current[1](0.4);
+    });
+
+    expect(result.current[0]).toBe(0.4);
+    expect(manager.getGlobalVolume()).toBe(0.4);
+    expect(MockHowler.volumeValue).toBe(0.4);
+  });
+
+  test('should reflect defaultVolume passed to constructor', () => {
+    MockHowler.reset();
+    const m = new AudioManager(
+      { defaultVolume: 0.7 },
+      { HowlClass: MockHowl as any, HowlerObj: MockHowler as any }
+    );
+    const w = ({ children }: { children?: React.ReactNode }) => (
+      <AudioManagerProvider manager={m}>{children}</AudioManagerProvider>
+    );
+    const { result } = renderHook(() => useGlobalVolume(), { wrapper: w });
+    expect(result.current[0]).toBe(0.7);
+  });
+});
+
