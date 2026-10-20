@@ -1,30 +1,5 @@
 {
-  "name": "@jswork/howler-audio-manager",
-  "version": "1.0.1",
   "description": "Howler.js audio manager, enum-driven sounds for H5.",
-  "npmClient": "pnpm",
-  "main": "dist/index.cjs.js",
-  "module": "dist/index.esm.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "src",
-    "dist"
-  ],
-  "prettier": "@jswork/style-guide/prettier",
-  "scripts": {
-    "build": "tsup",
-    "test": "bun test",
-    "release": "release-it"
-  },
-  "license": "MIT",
-  "peerDependencies": {
-    "howler": "^2.2.4"
-  },
-  "peerDependenciesMeta": {
-    "howler": {
-      "optional": false
-    }
-  },
   "devDependencies": {
     "@jswork/style-guide": "^1.0.3",
     "@jswork/tsup-banner": "^1.0.4",
@@ -39,15 +14,45 @@
     "tsup": "^8.2.4",
     "typescript": "^4.9.5"
   },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org"
-  },
+  "files": [
+    "src",
+    "dist"
+  ],
   "homepage": "https://js.work",
   "keywords": [
     "howler",
     "audio-manager",
     "h5-audio",
-    "sound-effects"
-  ]
+    "sound-effects",
+    "audio-management",
+    "howlerjs",
+    "dual-caching",
+    "audio-playback",
+    "memory-leak-prevention"
+  ],
+  "license": "MIT",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "name": "@jswork/howler-audio-manager",
+  "npmClient": "pnpm",
+  "peerDependencies": {
+    "howler": "^2.2.4"
+  },
+  "peerDependenciesMeta": {
+    "howler": {
+      "optional": false
+    }
+  },
+  "prettier": "@jswork/style-guide/prettier",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "build": "tsup",
+    "release": "release-it",
+    "test": "bun test"
+  },
+  "types": "dist/index.d.ts",
+  "version": "1.0.1"
 }
