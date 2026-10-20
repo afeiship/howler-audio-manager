@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { AudioManager } from './manager';
 import type { AudioEventType, AudioEventPayload } from './types';
 
-const AudioManagerContext = createContext<AudioManager | null>(null);
+const AudioManagerContext = createContext<AudioManager<any> | null>(null);
 
 export interface AudioManagerProviderProps<K extends string | number = string> {
   manager: AudioManager<K>;
@@ -15,7 +15,7 @@ export function AudioManagerProvider<K extends string | number = string>({
   children
 }: AudioManagerProviderProps<K>) {
   return (
-    <AudioManagerContext.Provider value={manager as AudioManager}>
+    <AudioManagerContext.Provider value={manager}>
       {children}
     </AudioManagerContext.Provider>
   );
@@ -26,7 +26,7 @@ export function useAudio<K extends string | number = string>(): AudioManager<K> 
   if (!manager) {
     throw new Error('useAudio must be used within an <AudioManagerProvider>.');
   }
-  return manager as AudioManager<K>;
+  return manager as unknown as AudioManager<K>;
 }
 
 export function useAudioEvent<K extends string | number = string>(

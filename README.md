@@ -63,6 +63,70 @@ audioManager.playUrl('https://cdn.example.com/voice/lesson-01.mp3', {
 audioManager.destroy();
 ```
 
+## React Hooks
+
+在 React 项目中通过 Provider + hooks 接入（`react` 为可选 peer 依赖，非 React 项目使用说明见文末）。
+
+```shell
+pnpm add @jswork/howler-audio-manager howler react
+```
+
+```tsx
+import { AudioManagerProvider, useAudio, useAudioEvent, useGlobalVolume, usePreload } from '@jswork/howler-audio-manager';
+
+const manager = new AudioManager<SoundEffect>();
+manager.loadEffects(SOUND_CONFIG);
+
+export function App() {
+  return (
+    <AudioManagerProvider manager={manager}>
+      <PlayButton />
+    </AudioManagerProvider>
+  );
+}
+
+function PlayButton() {
+  // 1. 获取 manager 实例
+  const audio = useAudio<SoundEffect>();
+
+  // 2. 全局音量（双向绑定）
+  const [volume, setVolume] = useGlobalVolume();
+
+  // 3. 订阅事件总线（自动随组件卸载退订，无闭包陷阱）
+  useAudioEvent('end', (payload) => {
+    console.log('playback ended', payload);
+  });
+
+  // 4. 预加载 URL 音频
+  const preload = usePreload(['https://cdn.example.com/voice/lesson-01.mp3']);
+
+  return (
+    <div>
+      <button onClick={() => audio.playEffect(SoundEffect.Click)}>click</button>
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.01}
+        value={volume}
+        onChange={(e) => setVolume(Number(e.target.value))}
+      />
+      <p>preload: {preload.status}</p>
+    </div>
+  );
+}
+```
+
+| API | 签名 | 说明 |
+| --- | --- | --- |
+| `AudioManagerProvider` | `({ manager, children }) => JSX` | Context Provider，向下传递 `AudioManager` 实例；实例生命周期由调用方管理（不随 Provider 卸载销毁）。 |
+| `useAudio` | `<K>() => AudioManager<K>` | 取 Provider 传入的实例；不在 Provider 内调用会抛出明确异常。 |
+| `useAudioEvent` | `<K>(event: AudioEventType, handler: (payload) => void) => void` | 订阅全局事件；handler 永远是最新的（无 stale closure），卸载自动调用 `destroy()`。 |
+| `useGlobalVolume` | `() => [number, (v: number) => void]` | 读取/设置全局音量（初始值来自 manager 的 `defaultVolume`）。 |
+| `usePreload` | `(urls: string[]) => { status: 'idle' \| 'loading' \| 'loaded' \| 'error'; error: unknown }` | 批量预加载 URL 音频，状态随加载结果更新；`urls` 内容变化会重新触发。 |
+
+> **非 React 项目注意**：hooks 从主入口导出，`react` 为 optional peerDependency。若你的打包器因找不到 `react` 报错，安装 `react`（任意 `>=16.8` 版本，仅作为打包占位）即可，不会影响现有 `AudioManager` 用法。
+
 ## API Reference
 
 ### Constructor
