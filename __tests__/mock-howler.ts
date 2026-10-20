@@ -2,9 +2,15 @@ type Callback = (...args: any[]) => void;
 
 let soundIdCounter = 1;
 
+export const createdHowls: MockHowl[] = [];
+
 export class MockHowl {
   public options: any;
   public stateValue: 'loaded' | 'loading' | 'unloaded' = 'loaded';
+  public unloadCalls = 0;
+  public stopCalls = 0;
+  public hasLoadFailed = false;
+  public lastLoadError: unknown = null;
   private eventHandlers: Map<string, Callback[]> = new Map();
   private isPlaying = false;
   private currentVolume = 1.0;
@@ -13,11 +19,21 @@ export class MockHowl {
   constructor(options: any) {
     this.options = options;
     this.currentVolume = options.volume ?? 1.0;
+    createdHowls.push(this);
     if (options.preload) {
       setTimeout(() => {
-        this.emit('load');
+        if (!this.hasLoadFailed) {
+          this.emit('load');
+        }
       }, 0);
     }
+  }
+
+  simulateLoadError(error?: unknown): void {
+    this.hasLoadFailed = true;
+    this.lastLoadError = error ?? new Error('load failed');
+    this.stateValue = 'unloaded';
+    this.emit('loaderror', 0, this.lastLoadError);
   }
 
   on(event: string, fn: Callback): this {
@@ -59,12 +75,17 @@ export class MockHowl {
     this.isPlaying = true;
     const soundId = soundIdCounter++;
     setTimeout(() => {
-      this.emit('play', soundId);
+      if (!this.hasLoadFailed) {
+        this.emit('play', soundId);
+      } else {
+        this.emit('playerror', soundId, this.lastLoadError);
+      }
     }, 0);
     return soundId;
   }
 
   stop(): this {
+    this.stopCalls++;
     if (this.isPlaying) {
       this.isPlaying = false;
       this.emit('stop');
@@ -105,6 +126,7 @@ export class MockHowl {
   }
 
   unload(): void {
+    this.unloadCalls++;
     this.stateValue = 'unloaded';
     this.eventHandlers.clear();
     this.isPlaying = false;
@@ -114,6 +136,7 @@ export class MockHowl {
 export const MockHowler = {
   volumeValue: 1.0,
   muted: false,
+  stopCalls: 0,
   volume(vol?: number) {
     if (vol !== undefined) {
       this.volumeValue = vol;
@@ -124,6 +147,12 @@ export const MockHowler = {
     this.muted = muted;
   },
   stop() {
-    // stop all sounds
+    this.stopCalls++;
+  },
+  reset() {
+    this.volumeValue = 1.0;
+    this.muted = false;
+    this.stopCalls = 0;
+    createdHowls.length = 0;
   }
 };

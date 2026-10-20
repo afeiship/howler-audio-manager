@@ -12,6 +12,7 @@ import type {
 export class AudioManager<K extends string | number = string> {
   private effectCache = new Map<K, Howl>();
   private urlAudioCache = new Map<string, Howl>();
+  private preloadPromises = new Map<string, Promise<void>>();
   private activeUrlHowl: Howl | null = null;
   private globalVolume = 1.0;
   private listeners = new Map<AudioEventType, Set<(payload: AudioEventPayload<K>) => void>>();
@@ -40,8 +41,7 @@ export class AudioManager<K extends string | number = string> {
     }
     const howl = new this.HowlConstructor({
       src: [url],
-      preload: true,
-      volume: this.globalVolume
+      preload: true
     });
     howl.on('load', () => {
       this.emit('load', { type: 'effect', key, url });
@@ -53,10 +53,10 @@ export class AudioManager<K extends string | number = string> {
   }
 
   loadEffects(map: SoundResourceMap<K>): void {
-    const keys = Object.keys(map) as K[];
-    for (const key of keys) {
-      this.loadEffect(key, map[key]);
-    }
+    Object.keys(map).forEach((key) => {
+      const typedKey = (isNaN(Number(key)) ? key : Number(key)) as K;
+      this.loadEffect(typedKey, map[key as any]);
+    });
   }
 
   playEffect(key: K, options?: PlayOptions): number | undefined {
@@ -74,17 +74,29 @@ export class AudioManager<K extends string | number = string> {
       howl.volume(options.volume);
     }
 
+    // Clear handlers from previous plays to avoid stale/duplicate callbacks.
+    howl.off('play');
+    howl.off('end');
+    howl.off('stop');
+    howl.off('playerror');
+
     howl.once('play', (soundId: number) => {
       options?.onStart?.(soundId);
       this.emit('play', { type: 'effect', key, soundId });
     });
 
     howl.once('end', (soundId: number) => {
+      if (typeof options?.volume === 'number') {
+        howl.volume(1);
+      }
       options?.onEnd?.(soundId);
       this.emit('end', { type: 'effect', key, soundId });
     });
 
     howl.once('stop', (soundId: number) => {
+      if (typeof options?.volume === 'number') {
+        howl.volume(1);
+      }
       options?.onStop?.(soundId);
       this.emit('stop', { type: 'effect', key, soundId });
     });
@@ -118,45 +130,59 @@ export class AudioManager<K extends string | number = string> {
       return Promise.resolve();
     }
 
-    return new Promise<void>((resolve, reject) => {
-      const howl =
-        existing ||
-        new this.HowlConstructor({
-          src: [url],
-          preload: true,
-          volume: this.globalVolume
-        });
+    const pending = this.preloadPromises.get(url);
+    if (pending) {
+      return pending;
+    }
 
-      if (!existing) {
-        this.urlAudioCache.set(url, howl);
-      }
+    // A howl in a terminal failed state (unloaded after error) must be replaced
+    // so a fresh instance can retry the load.
+    const howl = existing && existing.state() !== 'unloaded' ? existing : this.createUrlHowl(url);
 
+    const promise = new Promise<void>((resolve, reject) => {
       howl.once('load', () => {
-        this.emit('load', { type: 'url', url });
         resolve();
       });
 
       howl.once('loaderror', (_id: number, error: unknown) => {
-        this.emit('error', { type: 'url', url, error });
+        this.urlAudioCache.delete(url);
         reject(error);
       });
     });
+
+    this.preloadPromises.set(url, promise);
+    const settle = () => {
+      if (this.preloadPromises.get(url) === promise) {
+        this.preloadPromises.delete(url);
+      }
+    };
+    promise.then(settle, settle);
+
+    return promise;
   }
 
   preloadUrls(urls: string[]): Promise<void[]> {
     return Promise.all(urls.map((url) => this.preloadUrl(url)));
   }
 
+  private createUrlHowl(url: string): Howl {
+    const howl = new this.HowlConstructor({
+      src: [url],
+      preload: true
+    });
+    howl.on('load', () => {
+      this.emit('load', { type: 'url', url });
+    });
+    howl.on('loaderror', (_id: number, error: unknown) => {
+      this.urlAudioCache.delete(url);
+      this.emit('error', { type: 'url', url, error });
+    });
+    this.urlAudioCache.set(url, howl);
+    return howl;
+  }
+
   playUrl(url: string, options?: PlayUrlOptions): number {
-    let howl = this.urlAudioCache.get(url);
-    if (!howl) {
-      howl = new this.HowlConstructor({
-        src: [url],
-        preload: true,
-        volume: this.globalVolume
-      });
-      this.urlAudioCache.set(url, howl);
-    }
+    const howl = this.urlAudioCache.get(url) || this.createUrlHowl(url);
 
     // Singleton mutex: stop currently active URL audio if singleton !== false
     const isSingleton = options?.singleton !== false;
@@ -186,12 +212,21 @@ export class AudioManager<K extends string | number = string> {
       this.activeUrlHowl = howl;
     }
 
+    // Clear handlers from previous plays to avoid stale/duplicate callbacks.
+    howl.off('play');
+    howl.off('end');
+    howl.off('stop');
+    howl.off('playerror');
+
     howl.once('play', (soundId: number) => {
       options?.onStart?.(soundId);
       this.emit('play', { type: 'url', url, soundId });
     });
 
     howl.once('end', (soundId: number) => {
+      if (typeof options?.volume === 'number') {
+        howl.volume(1);
+      }
       options?.onEnd?.(soundId);
       this.emit('end', { type: 'url', url, soundId });
       if (this.activeUrlHowl === howl && !howl.loop()) {
@@ -200,6 +235,9 @@ export class AudioManager<K extends string | number = string> {
     });
 
     howl.once('stop', (soundId: number) => {
+      if (typeof options?.volume === 'number') {
+        howl.volume(1);
+      }
       options?.onStop?.(soundId);
       this.emit('stop', { type: 'url', url, soundId });
       if (this.activeUrlHowl === howl) {
@@ -226,15 +264,12 @@ export class AudioManager<K extends string | number = string> {
   }
 
   on(event: AudioEventType, handler: (payload: AudioEventPayload<K>) => void): EventSubscription {
-    let set = this.listeners.get(event);
-    if (!set) {
-      set = new Set();
-      this.listeners.set(event, set);
-    }
+    const set = this.listeners.get(event) ?? new Set<(payload: AudioEventPayload<K>) => void>();
+    this.listeners.set(event, set);
     set.add(handler);
     return {
       destroy: () => {
-        set?.delete(handler);
+        set.delete(handler);
       }
     };
   }
@@ -271,6 +306,7 @@ export class AudioManager<K extends string | number = string> {
     this.urlAudioCache.forEach((howl) => howl.unload());
     this.effectCache.clear();
     this.urlAudioCache.clear();
+    this.preloadPromises.clear();
     this.listeners.clear();
     this.activeUrlHowl = null;
   }
