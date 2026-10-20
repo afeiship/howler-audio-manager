@@ -1,25 +1,43 @@
 {
-  "name": "redux-notes",
-  "version": "0.0.1",
-  "description": "Redux learning notes",
-  "homepage": "https://github.com/afeiship/redux-notes",
-  "author": {
-    "name": "afei",
-    "email": "1290657123@qq.com"
-  },
+  "name": "@jswork/howler-audio-manager",
+  "version": "1.0.0",
+  "description": "Howler.js audio manager, enum-driven sounds for H5.",
+  "npmClient": "pnpm",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "src",
+    "dist",
+    "global.d.ts"
+  ],
+  "prettier": "@jswork/style-guide/prettier",
   "scripts": {
-    "dev": "webpack -w",
-    "start": "cd example && npm run start"
+    "build": "tsup",
+    "test": "bun test",
+    "release": "release-it"
   },
   "license": "MIT",
-  "dependencies": {
-    "react": "^16.4.1",
-    "react-dom": "^16.4.1",
-    "react-redux": "^5.0.7",
-    "redux": "^4.0.0"
-  },
   "devDependencies": {
-    "webpack": "^4.15.1",
-    "webpack-cli": "^3.0.8"
-  }
+    "@jswork/style-guide": "^1.0.3",
+    "@jswork/tsup-banner": "^1.0.4",
+    "@swc/core": "^1.5.5",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.12.11",
+    "esbuild-plugin-replace": "^1.4.0",
+    "esbuild-plugin-umd-wrapper": "^3.0.0",
+    "prettier": "^3.3.3",
+    "tsup": "^8.2.4",
+    "typescript": "^4.9.5"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "homepage": "https://js.work",
+  "keywords": [
+    "howler-audio-manager",
+    "number",
+    "num"
+  ]
 }
