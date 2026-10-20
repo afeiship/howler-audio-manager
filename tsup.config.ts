@@ -11,7 +11,7 @@ const baseOptions: Options = {
   dts: true,
   sourcemap: true,
   cjsInterop: true,
-  // external: ['react', 'react-dom'],
+  external: ['react'],
   banner: {
     js: tsupBanner(),
   },

@@ -7,6 +7,7 @@
     "forceConsistentCasingInFileNames": true,
     "pretty": true,
     "esModuleInterop": true,
+    "jsx": "react-jsx",
     "skipDefaultLibCheck": true,
     "module": "Node16",
     "moduleResolution": "Node16",
